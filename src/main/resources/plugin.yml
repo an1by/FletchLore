@@ -1,0 +1,8 @@
+name: FletchLore
+version: '${project.version}'
+main: net.aniby.fletchlore.FletchLore
+api-version: '1.20'
+load: STARTUP
+authors: [An1by]
+description: Change lore for item via Fletching Table!
+website: aniby.net
