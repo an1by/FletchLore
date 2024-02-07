@@ -73,10 +73,5 @@
             <version>1.20-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>net.wesjd</groupId>
-            <artifactId>anvilgui</artifactId>
-            <version>1.9.2-SNAPSHOT</version>
-        </dependency>
     </dependencies>
 </project>

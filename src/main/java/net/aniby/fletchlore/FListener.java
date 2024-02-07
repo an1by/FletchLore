@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
@@ -29,6 +30,7 @@ import java.util.Map;
 
 public class FListener implements Listener {
     private final FletchLore plugin;
+
     public FListener(FletchLore plugin) {
         this.plugin = plugin;
     }
@@ -49,10 +51,10 @@ public class FListener implements Listener {
     }
 
     @EventHandler
-    void onDrag(InventoryDragEvent event){
+    void onDrag(InventoryDragEvent event) {
         Inventory inventory = event.getInventory();
 
-        if (!(inventory instanceof  AnvilInventory anvil))
+        if (!(inventory instanceof AnvilInventory anvil))
             return;
 
         Player player = (Player) event.getWhoClicked();
@@ -60,18 +62,41 @@ public class FListener implements Listener {
         if (event.getResult() != Event.Result.ALLOW)
             return;
 
-        Map<Integer, ItemStack> items = event.getNewItems();
-        for(int index : items.keySet()) {
-            ItemStack item = items.get(index);
-            if (index == 1){
-                if (item.getType() == Material.WRITTEN_BOOK){
-                    ItemMeta meta = item.getItemMeta();
-                    BookMeta bookMeta = (BookMeta) meta;
-                    if (bookMeta.getPageCount() == 1){
-                        ItemStack
-                    }
-                }
-            }
+        if (FletchAnvil.map.get(player) != anvil) {
+            return;
         }
+
+        if (event.getNewItems().containsKey(1) || event.getNewItems().containsKey(0)) {
+            ItemStack result = updateresult(anvil);
+            anvil.setResult(result);
+        }
+        else if (event.getNewItems().containsKey(2)) {
+            player.closeInventory(InventoryCloseEvent.Reason.PLUGIN);
+            FletchAnvil.map.remove(player);
+        }
+
+    }
+
+    ItemStack updateresult(AnvilInventory inventory) {
+        ItemStack second = inventory.getSecondItem();
+        if (second == null || second.getType() != Material.WRITTEN_BOOK) {
+            return null;
+        }
+
+        BookMeta second_meta = (BookMeta) second.getItemMeta();
+        if (second_meta.getPageCount() != 1) {
+            return null;
+        }
+
+        ItemStack first = inventory.getFirstItem();
+        if (first == null) {
+            return null;
+        }
+
+        ItemStack result = first.clone();
+        ItemMeta first_meta = first.getItemMeta();
+        first_meta.lore(List.of(second_meta.page(0)));
+        result.setItemMeta(first_meta);
+        return result;
     }
 }
