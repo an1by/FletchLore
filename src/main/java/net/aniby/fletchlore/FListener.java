@@ -1,24 +1,23 @@
 package net.aniby.fletchlore;
 
-import net.kyori.adventure.inventory.Book;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.event.inventory.PrepareAnvilEvent;
-import org.bukkit.event.player.PlayerEditBookEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.AnvilInventory;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class FListener implements Listener {
     private final FletchLore plugin;
@@ -26,33 +25,60 @@ public class FListener implements Listener {
         this.plugin = plugin;
     }
 
-    List<Player> changeMap = new ArrayList<>();
-
     @EventHandler
     void onInteraction(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         Block block = event.getClickedBlock();
 
-        ItemStack mainHandItem = player.getInventory().getItemInMainHand();
+        PlayerInventory inventory = player.getInventory();
+        ItemStack mainHandItem = inventory.getItemInMainHand();
 
         if (block != null && block.getType() == Material.FLETCHING_TABLE && !mainHandItem.getType().isAir()) {
-            ItemStack item = new ItemStack(Material.WRITABLE_BOOK);
-            changeMap.add(player);
-            player.openBook(item);
+            player.openInventory(FletchAnvil.createInventory(player));
         }
     }
 
-    static void createInventory()
-
-    public static HashMap<Player, AnvilInventory> map = new HashMap<>();
-
     @EventHandler
-    public void da(PrepareAnvilEvent event) {
-        event.getInventory();
+    void onDrag(InventoryDragEvent event) {
+        Inventory inventory = event.getInventory();
+
+        if (inventory.getType() != InventoryType.ANVIL)
+            return;
+
+        Player player = (Player) event.getWhoClicked();
+
+        if (event.getResult() != Event.Result.ALLOW)
+            return;
+
+        if (FletchAnvil.map.get(player) != inventory)
+            return;
+
+        Map<Integer, ItemStack> items = event.getNewItems();
+        if (items.containsKey(1) || items.containsKey(0)) {
+            ItemStack result = updateResult(inventory);
+            inventory.setItem(2, result);
+        } else if (items.containsKey(2)) {
+            player.closeInventory(InventoryCloseEvent.Reason.PLUGIN);
+            FletchAnvil.map.remove(player);
+        }
     }
 
-    public static void da(Player player, JavaPlugin plugin) {
-        AnvilInventory inventory = (AnvilInventory) Bukkit.createInventory(player, InventoryType.ANVIL);
-//        inventory.
+    ItemStack updateResult(Inventory inventory) {
+        ItemStack second = inventory.getItem(1);
+        if (second == null || second.getType() != Material.WRITTEN_BOOK)
+            return null;
+        BookMeta secondMeta = (BookMeta) second.getItemMeta();
+        if (secondMeta.getPageCount() != 1)
+            return null;
+
+        ItemStack first = inventory.getItem(0);
+        if (first == null)
+            return null;
+        ItemStack result = first.clone();
+
+        ItemMeta firstMeta = first.getItemMeta();
+        firstMeta.lore(List.of(secondMeta.page(0)));
+        result.setItemMeta(firstMeta);
+        return result;
     }
 }
